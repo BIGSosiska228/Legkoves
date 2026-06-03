@@ -1,0 +1,125 @@
+#include <iostream>
+#include <vector>
+#include <map>
+
+using namespace std;
+
+
+//Структурный паттерн
+//Легковес (Flyweight)
+//Внутреннее - общее и неизменное дял всего пула объектов
+//Существует в 1 экземпляре, хранится в памяти единожды
+//Может использовать любой из объектов
+//Внешнее состояние объекта - уникальные характеристики
+//Для каждого хранитться внутри объета и задаётся отдельно
+
+//Произойдёт один раз
+class TreeType
+{
+    string mesh;
+    string texture;
+    string color;
+public:
+    TreeType(string mesh_, string texture_, string color_) : mesh(mesh_), texture(texture_), color(color_) {
+        cout << "Подождите загрузку ресурсов" << endl;
+    }
+    //Принимаем параметры, а нет храним постоянно в экземпляре
+    void Draw(double x, double y, double z, double scale) const
+    {
+        cout << "Дерево нарисованно в координатах: " << x << ", " << y << ", " << z << ", " << "Цвета: " << color << endl;
+    }
+};
+
+//Фабрика легковесов
+class TreeFactory
+{
+private:
+    unordered_map<string, TreeType> treeTypes;
+    //Ключ для хэш-таблицы
+    string getKey(string mesh, string texture, string color) const
+    {
+        return mesh + "_" + texture + "_" + color + "_";
+    }
+public:
+    TreeType& GetTreeType(const string& mesh, const string& texture, const string& color)
+    {
+        string key = getKey(mesh, texture, color);
+        auto it = treeTypes.find(key);
+        if(it == treeTypes.end())
+        {
+            auto [newIt, inserted] = treeTypes.emplace(key, TreeType(mesh, texture, color));
+            return newIt->second;
+        }
+        else
+        {
+            return it->second;
+        }
+    }
+};
+
+class Tree
+{
+private:
+    double x, y, z;
+    double scale;
+    //ссылка на общий легковес (хранится единожды в памяти)
+    const TreeType& type;
+public:
+    Tree(double x, double y, double z, double scale, const TreeType& type) : x(x), y(y), z(z), scale(scale), type(type) {}
+    void Draw() const
+    {
+        //Дилигировали отрисовку легковесу
+        type.Draw(x,y,z,scale);
+    }
+};
+
+class Forest
+{
+private:
+    vector<Tree> trees;
+    TreeFactory treeFactory;
+    
+public:
+    void PlantTree(double x, double y, double z, double scale, string mesh, string texture, string color)
+    {
+        //Получаем или создаём новый легковес (тип деревьев)
+        TreeType& type = treeFactory.GetTreeType(mesh, texture, color);
+        //Создаём дерево с уникальными характеристиками
+        trees.emplace_back(x,y,z,scale,type);
+    }
+    void DrawForest()
+    {
+        for(const auto& tree : trees)
+        {
+            tree.Draw();
+        }
+    }
+};
+
+int main() {
+    setlocale(LC_ALL, "Rus");
+    Forest forest;
+    for(int i = 0; i < 1000 ; i++)
+    {
+        double x = (double) rand() / 1000;
+        double y = (double) rand() / 1000;
+        double z = (double) rand() / 1000;
+        double scale = (double) rand() / 1000;
+        if( i % 3 == 0)
+        {
+            forest.PlantTree(x, y, z, scale, "Куст.obj", "Здоровый.jpg", "Зелёный");
+        }
+        
+        else if( i % 4 == 0)
+        {
+            forest.PlantTree(x, y, z, scale, "Дуб.obj", "Опадающий.jpg", "Жёлтый");
+        }
+        else
+        {
+            forest.PlantTree(x, y, z, scale, "Берёза.obj", "Цветущая.jpg", "Красный");
+        }
+
+    }
+    
+    return 0;
+}
